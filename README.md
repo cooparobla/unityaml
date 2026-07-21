@@ -1,62 +1,138 @@
 # UnityYAML
 
-A PySide-based file explorer and project construction tool for building Unity projects entirely outside the Unity editor UI.
+A PySide6-based file explorer and project construction tool for building Unity projects entirely outside the Unity editor UI.
+
+---
 
 ## Overview
 
-UnityYAML lets you construct Unity project data — scene hierarchies, mesh references, materials, and component configurations — by assembling `.yaml` files from `.blend` exports, supplementary `.yaml` config files, and raw assets. The goal is to never need the Unity UI for anything beyond basic build settings and scene management.
+UnityYAML provides a desktop GUI and CLI toolset to construct Unity project data — scene hierarchies, mesh references, materials, and component configurations — by assembling `.yaml` files from Blender exports, supplementary YAML config files, and raw image assets.
 
-## Core Concepts
+The primary workflow goal is to assemble and manage Unity scene data through pure YAML configurations and Blender exports, avoiding the Unity UI for scene construction.
 
-- **File Explorer** — A tree-view of the filesystem rooted where the tool is opened, filtered to show only project-relevant files (`.blend`, `.yaml`, `.json`, `.png`).
-- **Blender Export** — Headless extraction of mesh, skeleton, and animation data from `.blend` files into structured `.yaml` via the `blender_export` module.
-- **YAML Assembly** — Combine exported Blender data with hand-authored config `.yaml` files to produce complete Unity-ready scene descriptions.
+---
 
-## Project Structure
+## Features
+
+- **Dual-Tab Architecture**:
+  - **Assets Tab**: Lazy-loading directory tree view with custom filtering (`.blend`, `.yaml`, `.json`, `.png`, etc.), background headless Blender exports, and context-sensitive inspection panels.
+  - **Projects Tab**: Manage project targets, track assigned config files and asset references, and trigger batch exports.
+- **Automatic Version Grouping**:
+  - Files following the `<name>.v<major>.<minor>.<ext>` convention (e.g. `character.v1.0.blend` and `character.v2.3.blend`) automatically collapse into a single tree item showing the highest version.
+  - Inspect any historical version using the version selector dropdown.
+- **Fast Sidecar Metadata**:
+  - `.blend` metadata (objects, mesh counts, armature/animation flags) is cached in lightweight `.blend.meta.yaml` sidecar files after export, avoiding heavy Blender launches just to view file details.
+- **Pure-Python Serializer**:
+  - Custom YAML dumper (`blender_export.yaml_dump`) producing compact, human-readable YAML with inline flow-styles for simple structures and `!Tag` support.
+- **Dark Mode UI**:
+  - Custom dark theme built with PySide6 widgets.
+
+---
+
+## Directory Structure
 
 ```
 src/
   blender_export/       # Headless Blender-to-YAML export pipeline
-    __init__.py
-    __main__.py          # CLI: python -m blender_export scene.blend -o scene.yaml
-    api.py               # Python API: export_blend(), extract_blend_data()
-    yaml_dump.py         # Pure-Python YAML serializer (no dependencies)
-    _blender_script.py   # Runs inside Blender's Python interpreter
-  unityaml/             # Pure Python backend logic (dataclasses, file handlers, versioning, projects)
-  unityaml_gui/         # PySide6 GUI application (depends on unityaml)
-plans/                   # Design documents and roadmap
+    api.py              # Export API (export_blend, extract_blend_data)
+    yaml_dump.py        # Pure-Python YAML serializer
+    _blender_script.py  # Script executed inside Blender's Python interpreter
+  unityaml/             # Pure-Python data layer (dataclasses, handlers, versioning, persistence)
+  unityaml_gui/         # PySide6 desktop application (views, models, dark stylesheet)
+
+tests/                  # Unit and GUI test suite (360+ tests)
+  blender_export/       # Serializer tests
+  unityaml/             # Data layer, versioning, handler, and persistence tests
+  unityaml_gui/         # PySide6 widget, model, signal, and app tests
 ```
+
+---
 
 ## Quick Start
 
+### Installation
+
+Ensure Python ≥ 3.10 is installed.
+
 ```bash
-# Setup
-uv venv && uv sync
-
-# Export a .blend file to YAML
-uv run blender-export scene.blend -o scene.yaml
-
-# Launch the file explorer UI (planned)
-uv run unityaml-gui
+# Clone and install system-wide CLI via uv
+git clone https://github.com/cooparobla/unityaml.git
+cd unityaml
+./install.sh
 ```
 
-## File Filter
+To uninstall:
+```bash
+./uninstall.sh
+```
 
-The tree view filters to these extensions by default:
+### Running the GUI
 
-| Extension | Purpose |
-|-----------|---------|
-| `.blend`  | Blender scene/mesh source files |
-| `.yaml`   | Exported scene data and hand-authored configs |
-| `.json`   | Metadata and configuration |
-| `.png`    | Texture and image assets |
+Once installed, launch the desktop app from anywhere:
 
-## Scope
+```bash
+# Open GUI in the current working directory
+unityaml
 
-This repository contains **Python code only** — the tooling side (export pipeline, file explorer UI, YAML assembly). The Unity C# runtime that consumes the generated `.yaml` files lives in a separate repository.
+# Open GUI rooted at a specific asset directory
+unityaml /path/to/my/assets
+```
+
+Alternatively, run directly with `uv`:
+```bash
+uv run unityaml
+```
+
+#### GUI Workflows:
+1. **Filtering Assets**: Use the top filter bar in the Assets tab to specify active file extensions (e.g. `.blend .yaml .png`).
+2. **Version Inspection**: Select a versioned asset to view its metadata. Use the **Version** dropdown in the detail panel to switch versions.
+3. **Exporting Blender Files**: Right-click any `.blend` file in the tree (or click **⚡ Export → YAML** in the detail panel) to run a background export.
+4. **Project Management**: Switch to the **Projects** tab to create a new project, add asset references or config files, and run **⚡ Export All** to batch-export all `.blend` files in the project.
+
+---
+
+## Command Line Export
+
+Export `.blend` scenes to YAML directly from the terminal without opening the GUI:
+
+```bash
+# Basic export
+uv run blender-export character.blend -o character.yaml
+
+# Specify custom Blender executable path
+uv run blender-export model.blend -o model.yaml --blender /opt/blender/blender
+```
+
+---
+
+## Testing
+
+Run the comprehensive test suite with `pytest`:
+
+```bash
+# Run all tests (data layer, exporter, and PySide6 GUI)
+uv run pytest tests/ -v
+
+# Run specific package tests
+uv run pytest tests/unityaml/ -v
+uv run pytest tests/unityaml_gui/ -v
+uv run pytest tests/blender_export/ -v
+```
+
+---
+
+## Configuration & Storage
+
+User settings and project configurations are automatically saved under `~/.unityaml/`:
+
+- `~/.unityaml/settings.yaml` — Remembers window geometry, splitter sizes, and active tab.
+- `~/.unityaml/projects/<project_name>/project.yaml` — Stores project definition, config files, and asset references.
+
+---
 
 ## Dependencies
 
 - **Python** ≥ 3.10
-- **PySide6** — Qt-based UI framework
-- **Blender** — Required on `$PATH` or via `BLENDER_PATH` for `.blend` export (not a Python dependency)
+- **PySide6** — Qt-based GUI framework
+- **PyYAML** — YAML parsing
+- **Blender** — Required on system `$PATH` (or via `--blender` flag) for exporting `.blend` files

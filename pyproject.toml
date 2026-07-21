@@ -14,8 +14,7 @@ dependencies = [
 ]
 
 [project.scripts]
-blender-export = "blender_export.__main__:main"
-unityaml-gui = "unityaml_gui.__main__:main"
+unityaml = "unityaml_gui.__main__:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/blender_export", "src/unityaml", "src/unityaml_gui"]
@@ -23,5 +22,6 @@ packages = ["src/blender_export", "src/unityaml", "src/unityaml_gui"]
 [dependency-groups]
 dev = [
     "pytest>=8.0.0",
+    "pytest-qt>=4.5.0",
     "ruff>=0.3.0",
 ]

@@ -1,0 +1,1 @@
+"""detail sub-package init."""
