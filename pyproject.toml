@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "unityaml"
+version = "0.1.0"
+description = "Tools for exporting Blender scenes/meshes to YAML for Unity."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pyside6>=6.6.0",
+    "pyyaml>=6.0.0",
+]
+
+[project.scripts]
+blender-export = "blender_export.__main__:main"
+unityaml-gui = "unityaml_gui.__main__:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/blender_export", "src/unityaml", "src/unityaml_gui"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "ruff>=0.3.0",
+]
