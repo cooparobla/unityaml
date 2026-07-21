@@ -12,12 +12,15 @@ fi
 # Ensure ~/.local/bin is in execution PATH for this session
 export PATH="$HOME/.local/bin:$PATH"
 
+# Respect UV_TOOL_BIN_DIR if set by sww, otherwise default to ~/.local/bin
+export UV_TOOL_BIN_DIR="${UV_TOOL_BIN_DIR:-$HOME/.local/bin}"
+
 # 2. Install unityaml as an editable tool using uv
 echo "Installing unityaml CLI and GUI tools..."
 uv tool install --editable . --force
 
-# Ensure ~/.local/bin is in PATH for future shell sessions
-if [ -f "$HOME/.bashrc" ] && ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' "$HOME/.bashrc" && [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+# Ensure binary directory is in PATH for future shell sessions if it's ~/.local/bin
+if [ "$UV_TOOL_BIN_DIR" = "$HOME/.local/bin" ] && [ -f "$HOME/.bashrc" ] && ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' "$HOME/.bashrc" && [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
     echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
     echo "Added $HOME/.local/bin to ~/.bashrc"
 fi
